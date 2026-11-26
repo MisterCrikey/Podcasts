@@ -8,7 +8,7 @@
 
 <style>
 /* ==========================================================
-   1. BASICS  (colors live here, tweak them if you want)
+   1. BASICS  (them pretty stuff)
    ========================================================== */
 :root{
   --bg:#121212; --card:#1f1f1f; --hover:#2a2a2a;
@@ -336,7 +336,7 @@ function toast(msg){
 }
 
 
-/* ---------- HOME ---------- */
+/* ---------- HOME: chips + tiles ---------- */
 function renderChips(){
   const items = [["all", "🎧", "All"], ...Object.entries(CATEGORIES).map(([k, v]) => [k, v.emoji, v.label])];
   $("#chips").innerHTML = items.map(([k, em, label]) =>
@@ -405,7 +405,7 @@ function load(i, play, openScreen){
 }
 
 
-/* ---------- TRANSCRIPT ---------- */
+/* ---------- TRANSCRIPT (spotify lyrics style) ---------- */
 async function loadTranscript(e){
   lines = []; activeLine = -1;
   $("#lyrics").innerHTML = '<p class="msg">Loading transcript…</p>';
@@ -470,7 +470,7 @@ function centerLine(force){
 ["wheel", "touchmove"].forEach(ev => $("#lyrics").addEventListener(ev, () => userScrolledAt = Date.now(), { passive:true }));
 
 
-/* ---------- PLAYER SCREEN ---------- */
+/* ---------- PLAYER SCREEN open / close / tabs ---------- */
 function openPlayer(){
   if (current < 0) return;                                         // nothing picked yet
   $("#player").classList.add("open");
@@ -524,7 +524,7 @@ audio.ontimeupdate = () => {
 };
 
 
-/* ---------- extras: lock screen controls + "no saving" stuff ---------- */
+/* ---------- extras: lock screen controls + "no downloading" stuff ---------- */
 if ("mediaSession" in navigator){
   const ms = navigator.mediaSession;
   ms.setActionHandler("play",  () => audio.play());
