@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Podcasts</title>
+<style>
+:root{--bg:#121212;--panel:#181818;--card:#1f1f1f;--hover:#2a2a2a;--text:#fff;--muted:#b3b3b3;--accent:#1ed760;--bar:72px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,.card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#app{display:grid;grid-template-columns:1fr 380px;height:calc(100% - var(--bar))}
+#main{overflow-y:auto;padding:0 28px 40px}
+header{position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 80%,transparent);padding:20px 0 14px}
+header h1{font-size:1.6rem;margin-bottom:14px}
+.chips{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:8px 16px;border-radius:999px;background:var(--card);font-size:.95rem;white-space:nowrap}
+.chip:hover{background:var(--hover)}
+.chip.on{background:var(--accent);color:#000;font-weight:600}
+section{margin-top:28px}
+section h2{font-size:1.3rem;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+section h2 small{font-size:.85rem;color:var(--muted);font-weight:400}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:18px}
+.card{background:var(--card);border-radius:8px;padding:14px;cursor:pointer;transition:background .2s;text-align:left}
+.card:hover,.card.playing{background:var(--hover)}
+.cover{position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;display:grid;place-items:center;font-size:3rem;margin-bottom:12px;box-shadow:0 8px 20px rgba(0,0,0,.4)}
+.cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;-webkit-user-drag:none;pointer-events:none}
+.card .play{position:absolute;right:8px;bottom:8px;width:42px;height:42px;border-radius:50%;background:var(--accent);color:#000;display:grid;place-items:center;opacity:0;transform:translateY(8px);transition:.2s}
+.card:hover .play,.card.playing .play{opacity:1;transform:none}
+.card h3{font-size:1rem;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card p{font-size:.85rem;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* side panel */
+#panel{background:var(--panel);margin:8px 8px 0 0;border-radius:8px;overflow-y:auto;padding:20px}
+#panel .cover{font-size:5rem;max-width:300px;margin:0 auto 18px}
+#panel h2{font-size:1.4rem;margin-bottom:4px}
+#panel .cat{color:var(--muted);font-size:.9rem;margin-bottom:16px}
+.learners{background:var(--card);border-radius:8px;padding:14px;margin-bottom:20px}
+.learners h4{font-size:.95rem;margin-bottom:6px}
+.learners p{color:var(--muted);font-size:.9rem;line-height:1.5}
+.tr-title{font-weight:700;margin-bottom:10px}
+#transcript{display:flex;flex-direction:column;gap:12px;padding-bottom:30px}
+#transcript button{text-align:left;font-size:1.25rem;font-weight:700;line-height:1.3;color:#6f6f6f;transition:color .25s}
+#transcript button:hover{color:#ddd}
+#transcript button.now{color:#fff}
+#transcript button.past{color:#8f8f8f}
+.note{color:var(--muted);font-size:.9rem}
+.close{display:none}
+/* player bar */
+#bar{position:fixed;left:0;right:0;bottom:0;height:var(--bar);background:#000;display:grid;grid-template-columns:1fr 2fr 1fr;align-items:center;gap:12px;padding:0 16px env(safe-area-inset-bottom,0)}
+#bar .now{display:flex;align-items:center;gap:12px;min-width:0;cursor:pointer}
+#bar .mini{width:48px;height:48px;border-radius:4px;flex:none;display:grid;place-items:center;font-size:1.5rem;position:relative;overflow:hidden;background:var(--card)}
+#bar .mini img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#bar .t{min-width:0}#bar .t b,#bar .t span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#bar .t span{font-size:.8rem;color:var(--muted)}
+.ctr{display:flex;flex-direction:column;align-items:center;gap:4px}
+.btns{display:flex;align-items:center;gap:18px}
+.btns button{font-size:1.2rem;color:var(--muted);width:36px;height:36px}
+.btns button:hover{color:#fff}
+.btns #pp{background:#fff;color:#000;border-radius:50%;font-size:1rem}
+.seek{display:flex;align-items:center;gap:8px;width:100%;max-width:560px;font-size:.75rem;color:var(--muted)}
+input[type=range]{flex:1;accent-color:var(--accent);height:4px;cursor:pointer}
+.right{display:flex;justify-content:flex-end}
+#speed{font-size:.85rem;border:1px solid #555;border-radius:999px;padding:4px 12px}
+.empty{color:var(--muted);padding:40px 0;text-align:center}
+@media (max-width:860px){
+ :root{--bar:128px}
+ #app{grid-template-columns:1fr}
+ #main{padding:0 16px 24px}
+ .grid{grid-template-columns:repeat(2,1fr);gap:12px}
+ #panel{position:fixed;inset:0;z-index:20;margin:0;border-radius:0;transform:translateY(100%);transition:transform .3s;padding-top:max(20px,env(safe-area-inset-top))}
+ #panel.open{transform:none}
+ .close{display:block;font-size:1.6rem;margin-bottom:8px}
+ #bar{grid-template-columns:1fr;grid-template-rows:auto auto;gap:4px;padding-top:8px}
+ .right{display:none}
+ .ctr{order:2}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <main id="main">
+    <header>
+      <h1>Site title</h1>
+      <nav class="chips" id="chips" aria-label="Categories"></nav>
+    </header>
+    <div id="lists"></div>
+  </main>
+
+  <aside id="panel" aria-label="Now playing">
+    <button class="close" id="closePanel" aria-label="Close">⌄</button>
+    <div class="cover" id="pCover"></div>
+    <h2 id="pTitle">Select an episode</h2>
+    <div class="cat" id="pCat"></div>
+    <div class="learners"><h4>Produced by</h4><p id="pLearners">Learner names will appear here.</p></div>
+    <div class="tr-title">Transcript</div>
+    <div id="transcript"><p class="note">Pick an episode to follow the text while you listen.</p></div>
+  </aside>
+</div>
+
+<div id="bar">
+  <div class="now" id="nowBtn">
+    <div class="mini" id="mCover"></div>
+    <div class="t"><b id="mTitle">Nothing playing</b><span id="mCat"></span></div>
+  </div>
+  <div class="ctr">
+    <div class="btns">
+      <button id="back" aria-label="Back 15 seconds">⟲15</button>
+      <button id="prev" aria-label="Previous">⏮</button>
+      <button id="pp" aria-label="Play or pause">▶</button>
+      <button id="next" aria-label="Next">⏭</button>
+      <button id="fwd" aria-label="Forward 15 seconds">15⟳</button>
+    </div>
+    <div class="seek"><span id="cur">0:00</span><input type="range" id="seek" min="0" max="100" value="0" step="0.1" aria-label="Seek"><span id="dur">0:00</span></div>
+  </div>
+  <div class="right"><button id="speed">1x</button></div>
+</div>
+
+<script>
+/* =========================================================
+   1) CATEGORIES  – change emoji / label here
+   ========================================================= */
+const CATEGORIES = {
+  glaciers: { emoji:"🧊", label:"Glaciers",    color:"#1e5a7a" },
+  beaches:  { emoji:"🏖️", label:"Beaches",     color:"#a06a1c" },
+  mangroves:{ emoji:"🌿", label:"Mangroves",   color:"#2d6a3e" },
+  forests:  { emoji:"🌲", label:"Forests",     color:"#1f5a3a" },
+  coral:    { emoji:"🪸", label:"Coral reefs", color:"#a8445a" }
+};
+
+/* =========================================================
+   2) EPISODES – fill in one line per podcast.
+   Files go in: covers/  audio/  transcripts/
+   ========================================================= */
+const EPISODES = [
+  // glaciers (5)
+  { cat:"glaciers", title:"Episode title", desc:"Short description", learners:"", cover:"covers/glaciers-1.jpg", audio:"audio/glaciers-1.mp3", vtt:"transcripts/glaciers-1.vtt" },
+  { cat:"glaciers", title:"Episode title", desc:"Short description", learners:"", cover:"covers/glaciers-2.jpg", audio:"audio/glaciers-2.mp3", vtt:"transcripts/glaciers-2.vtt" },
+  { cat:"glaciers", title:"Episode title", desc:"Short description", learners:"", cover:"covers/glaciers-3.jpg", audio:"audio/glaciers-3.mp3", vtt:"transcripts/glaciers-3.vtt" },
+  { cat:"glaciers", title:"Episode title", desc:"Short description", learners:"", cover:"covers/glaciers-4.jpg", audio:"audio/glaciers-4.mp3", vtt:"transcripts/glaciers-4.vtt" },
+  { cat:"glaciers", title:"Episode title", desc:"Short description", learners:"", cover:"covers/glaciers-5.jpg", audio:"audio/glaciers-5.mp3", vtt:"transcripts/glaciers-5.vtt" },
+  // forests (3)
+  { cat:"forests", title:"Episode title", desc:"Short description", learners:"", cover:"covers/forests-1.jpg", audio:"audio/forests-1.mp3", vtt:"transcripts/forests-1.vtt" },
+  { cat:"forests", title:"Episode title", desc:"Short description", learners:"", cover:"covers/forests-2.jpg", audio:"audio/forests-2.mp3", vtt:"transcripts/forests-2.vtt" },
+  { cat:"forests", title:"Episode title", desc:"Short description", learners:"", cover:"covers/forests-3.jpg", audio:"audio/forests-3.mp3", vtt:"transcripts/forests-3.vtt" },
+  // beaches (2)
+  { cat:"beaches", title:"Episode title", desc:"Short description", learners:"", cover:"covers/beaches-1.jpg", audio:"audio/beaches-1.mp3", vtt:"transcripts/beaches-1.vtt" },
+  { cat:"beaches", title:"Episode title", desc:"Short description", learners:"", cover:"covers/beaches-2.jpg", audio:"audio/beaches-2.mp3", vtt:"transcripts/beaches-2.vtt" },
+  // coral reefs (2)
+  { cat:"coral", title:"Episode title", desc:"Short description", learners:"", cover:"covers/coral-1.jpg", audio:"audio/coral-1.mp3", vtt:"transcripts/coral-1.vtt" },
+  { cat:"coral", title:"Episode title", desc:"Short description", learners:"", cover:"covers/coral-2.jpg", audio:"audio/coral-2.mp3", vtt:"transcripts/coral-2.vtt" },
+  // mangroves (1)
+  { cat:"mangroves", title:"Episode title", desc:"Short description", learners:"", cover:"covers/mangroves-1.jpg", audio:"audio/mangroves-1.mp3", vtt:"transcripts/mangroves-1.vtt" }
+];
+
+/* =========================================================
+   3) APP CODE – no need to edit below
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const audio = new Audio();               // not in the page, so no native download menu
+audio.preload = "metadata";
+let cur = -1, lines = [], filter = "all", lastIdx = -1;
+
+const coverHTML = (e) => `<span>${CATEGORIES[e.cat].emoji}</span><img src="${e.cover}" alt="" draggable="false" onerror="this.remove()">`;
+const fmt = s => { s = Math.floor(s||0); return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); };
+const esc = s => String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+/* chips + lists */
+function renderChips(){
+  const items = [["all","🎧","All"], ...Object.entries(CATEGORIES).map(([k,v])=>[k,v.emoji,v.label])];
+  $("chips").innerHTML = items.map(([k,em,l]) =>
+    `<button class="chip ${filter===k?"on":""}" data-k="${k}">${em} ${l}</button>`).join("");
+  $("chips").querySelectorAll(".chip").forEach(b => b.onclick = () => { filter = b.dataset.k; renderChips(); renderLists(); $("main").scrollTo(0,0); });
+}
+function renderLists(){
+  const keys = filter==="all" ? Object.keys(CATEGORIES) : [filter];
+  $("lists").innerHTML = keys.map(k => {
+    const eps = EPISODES.map((e,i)=>({e,i})).filter(x => x.e.cat===k);
+    if(!eps.length) return "";
+    const c = CATEGORIES[k];
+    return `<section><h2>${c.emoji} ${c.label} <small>${eps.length} ${eps.length>1?"episodes":"episode"}</small></h2>
+      <div class="grid">${eps.map(({e,i}) => `
+        <div class="card ${i===cur?"playing":""}" tabindex="0" role="button" data-i="${i}" aria-label="${esc(e.title)}">
+          <div class="cover" style="background:linear-gradient(135deg,${c.color},#222)">${coverHTML(e)}<div class="play">▶</div></div>
+          <h3>${esc(e.title)}</h3><p>${esc(e.desc)}</p>
+        </div>`).join("")}</div></section>`;
+  }).join("");
+  document.querySelectorAll(".card").forEach(c => {
+    const go = () => load(+c.dataset.i, true);
+    c.onclick = go; c.onkeydown = ev => { if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();go();} };
+  });
+}
+
+/* load an episode */
+function load(i, play){
+  if(i<0 || i>=EPISODES.length) return;
+  cur = i; const e = EPISODES[i], c = CATEGORIES[e.cat];
+  audio.src = e.audio; audio.playbackRate = rates[rateI];
+  $("pCover").style.background = `linear-gradient(135deg,${c.color},#222)`; $("pCover").innerHTML = coverHTML(e);
+  $("mCover").innerHTML = coverHTML(e);
+  $("pTitle").textContent = $("mTitle").textContent = e.title;
+  $("pCat").textContent = $("mCat").textContent = c.emoji + " " + c.label;
+  $("pLearners").textContent = e.learners || "Learner names will appear here.";
+  document.querySelectorAll(".card").forEach(x => x.classList.toggle("playing", +x.dataset.i===i));
+  loadTranscript(e);
+  if(play) audio.play().catch(()=>{ $("transcript").insertAdjacentHTML("afterbegin",`<p class="note">Audio file not found yet: ${esc(e.audio)}</p>`); });
+  if(matchMedia("(max-width:860px)").matches && play) $("panel").classList.add("open");
+}
+
+/* transcript (.vtt) */
+async function loadTranscript(e){
+  lines = []; lastIdx = -1;
+  $("transcript").innerHTML = '<p class="note">Loading transcript…</p>';
+  try{
+    const r = await fetch(e.vtt); if(!r.ok) throw 0;
+    lines = parseVTT(await r.text());
+    if(!lines.length) throw 0;
+    $("transcript").innerHTML = lines.map((l,k)=>`<button data-k="${k}">${esc(l.text)}</button>`).join("");
+    $("transcript").querySelectorAll("button").forEach(b => b.onclick = () => { audio.currentTime = lines[+b.dataset.k].t; audio.play().catch(()=>{}); });
+  }catch(_){ $("transcript").innerHTML = '<p class="note">Transcript not available yet.</p>'; }
+}
+function parseVTT(txt){
+  const out = [];
+  txt.replace(/\r/g,"").split(/\n\s*\n/).forEach(block => {
+    const L = block.split("\n"); const k = L.findIndex(x => x.includes("-->")); if(k<0) return;
+    const m = L[k].match(/([\d:.,]+)\s*-->/); if(!m) return;
+    const p = m[1].replace(",",".").split(":").map(parseFloat);
+    const t = p.length===3 ? p[0]*3600+p[1]*60+p[2] : p[0]*60+p[1];
+    const text = L.slice(k+1).join(" ").trim(); if(text) out.push({t,text});
+  });
+  return out;
+}
+function syncTranscript(){
+  if(!lines.length) return;
+  let idx = -1; for(let k=0;k<lines.length;k++){ if(lines[k].t <= audio.currentTime+0.1) idx = k; else break; }
+  if(idx===lastIdx) return; lastIdx = idx;
+  const btns = $("transcript").children;
+  for(let k=0;k<btns.length;k++){ btns[k].className = k===idx?"now":(k<idx?"past":""); }
+  if(btns[idx]) btns[idx].scrollIntoView({block:"center",behavior:"smooth"});
+}
+
+/* controls */
+const rates = [1,1.25,1.5,0.75]; let rateI = 0;
+$("pp").onclick = () => { if(cur<0) return load(0,true); audio.paused ? audio.play().catch(()=>{}) : audio.pause(); };
+$("prev").onclick = () => load(cur<=0?0:cur-1, true);
+$("next").onclick = () => load(cur+1, true);
+$("back").onclick = () => audio.currentTime = Math.max(0, audio.currentTime-15);
+$("fwd").onclick = () => audio.currentTime = Math.min(audio.duration||0, audio.currentTime+15);
+$("speed").onclick = () => { rateI=(rateI+1)%rates.length; audio.playbackRate=rates[rateI]; $("speed").textContent=rates[rateI]+"x"; };
+$("seek").oninput = () => { if(audio.duration) audio.currentTime = $("seek").value/100*audio.duration; };
+$("nowBtn").onclick = () => $("panel").classList.add("open");
+$("closePanel").onclick = () => $("panel").classList.remove("open");
+audio.onplay = () => $("pp").textContent = "⏸";
+audio.onpause = () => $("pp").textContent = "▶";
+audio.onended = () => { if(cur < EPISODES.length-1) load(cur+1,true); };
+audio.onloadedmetadata = () => $("dur").textContent = fmt(audio.duration);
+audio.ontimeupdate = () => {
+  $("cur").textContent = fmt(audio.currentTime);
+  if(audio.duration) $("seek").value = audio.currentTime/audio.duration*100;
+  syncTranscript();
+};
+/* lock-screen / headphone controls on phones */
+if("mediaSession" in navigator){
+  navigator.mediaSession.setActionHandler("play",()=>audio.play());
+  navigator.mediaSession.setActionHandler("pause",()=>audio.pause());
+  navigator.mediaSession.setActionHandler("previoustrack",()=>$("prev").click());
+  navigator.mediaSession.setActionHandler("nexttrack",()=>$("next").click());
+}
+/* discourage saving (cannot be 100% prevented, see README) */
+document.addEventListener("contextmenu", e => e.preventDefault());
+document.addEventListener("dragstart", e => e.preventDefault());
+
+renderChips(); renderLists();
+</script>
+</body>
+</html>
