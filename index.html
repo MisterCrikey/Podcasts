@@ -8,7 +8,7 @@
 
 <style>
 /* ==========================================================
-   1. BASICS  (them pretty stuff)
+   1. BASICS  (colors live here, tweak them if you want)
    ========================================================== */
 :root{
   --bg:#121212; --card:#1f1f1f; --hover:#2a2a2a;
@@ -400,7 +400,10 @@ function load(i, play, openScreen){
 
   loadTranscript(e);
 
-  if (play) audio.play().catch(() => toast("Audio file not found yet: " + e.audio));
+  if (play) audio.play().catch(err => {
+    // only the "browser wants a tap first" case is handled here, real file problems are caught by audio.onerror below
+    if (err.name === "NotAllowedError") toast("Press the play button to start");
+  });
   if (openScreen) openPlayer();
 }
 
@@ -513,6 +516,14 @@ $$(".seek").forEach(r => r.oninput = () => {
 /* ---------- AUDIO EVENTS ---------- */
 audio.onplay  = () => $$('[data-act="toggle"]').forEach(b => setIcon(b, "pause"));
 audio.onpause = () => $$('[data-act="toggle"]').forEach(b => setIcon(b, "play"));
+// here buddy: this tells you what's REALLY wrong with the audio file instead of guessing
+audio.onerror = () => {
+  const path = EPISODES[current] ? EPISODES[current].audio : "";
+  const code = audio.error ? audio.error.code : 0;
+  if (code === 4) toast("Can't open " + path + ". Wrong name or folder, not uploaded yet, or not a real mp3.");
+  else if (code === 3) toast("The audio file seems damaged: " + path);
+  else if (code === 2) toast("Network problem loading " + path + ". Try again.");
+};
 audio.onended = () => { if (current < EPISODES.length - 1) load(current + 1, true); };   // autoplay next one
 audio.onloadedmetadata = () => $$(".tdur").forEach(s => s.textContent = fmt(audio.duration));
 audio.ontimeupdate = () => {
@@ -524,7 +535,7 @@ audio.ontimeupdate = () => {
 };
 
 
-/* ---------- extras: lock screen controls + "no downloading" stuff ---------- */
+/* ---------- extras: lock screen controls + "no saving" stuff ---------- */
 if ("mediaSession" in navigator){
   const ms = navigator.mediaSession;
   ms.setActionHandler("play",  () => audio.play());
