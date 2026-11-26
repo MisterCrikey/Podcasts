@@ -8,7 +8,7 @@
 
 <style>
 /* ==========================================================
-   1. BASICS
+   1. BASICS  (colors live here, tweak them if you want)
    ========================================================== */
 :root{
   --bg:#121212; --card:#1f1f1f; --hover:#2a2a2a;
@@ -24,7 +24,7 @@ button:focus-visible,.card:focus-visible{outline:2px solid var(--accent);outline
 svg{display:block;fill:currentColor}
 
 /* ==========================================================
-   2. HOME
+   2. HOME  (categories + episode tiles)
    ========================================================== */
 #home{height:calc(100% - var(--bar));overflow-y:auto;padding:0 28px 40px}
 header{position:sticky;top:0;z-index:5;padding:20px 0 14px;background:linear-gradient(var(--bg) 80%,transparent)}
@@ -59,7 +59,7 @@ section h2 small{font-size:.85rem;color:var(--muted);font-weight:400}
 .empty{color:var(--muted);padding:40px 0;text-align:center}
 
 /* ==========================================================
-   3. BOTTOM BAR 
+   3. BOTTOM BAR  (the little player)
    ========================================================== */
 #bar{position:fixed;left:0;right:0;bottom:0;height:var(--bar);z-index:10;background:#000;
   display:grid;grid-template-columns:1fr 2fr 1fr;align-items:center;gap:12px;padding:0 16px}
@@ -88,7 +88,7 @@ input[type=range]{flex:1;height:4px;accent-color:var(--accent);cursor:pointer}
 .mPlay,.miniProg{display:none}   /* phone-only stuff, see media query at the bottom */
 
 /* ==========================================================
-   4. PLAYER SCREEN 
+   4. PLAYER SCREEN  (full screen, with the transcript)
    ========================================================== */
 #player{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;
   background:linear-gradient(var(--tint),#121212 120%);
@@ -135,7 +135,7 @@ input[type=range]{flex:1;height:4px;accent-color:var(--accent);cursor:pointer}
 #toast.show{opacity:1}
 
 /* ==========================================================
-   5. MOBILE
+   5. PHONES AND SMALL SCREENS
    ========================================================== */
 @media (max-width:860px){
   #home{padding:0 16px 24px}
@@ -248,6 +248,7 @@ input[type=range]{flex:1;height:4px;accent-color:var(--accent);cursor:pointer}
    The color tints the player screen for that category.
    ========================================================== */
 const CATEGORIES = {
+  test:      { emoji:"🧪", label:"Test",        color:"#5a3a8a" },   // temporary, delete this line (and the test episode) when you're done
   glaciers:  { emoji:"🧊", label:"Glaciers",    color:"#1e5a7a" },
   beaches:   { emoji:"🏖️", label:"Beaches",     color:"#a06a1c" },
   mangroves: { emoji:"🌿", label:"Mangroves",   color:"#2d6a3e" },
@@ -262,6 +263,8 @@ const CATEGORIES = {
    Leave learners empty until you're ready, the site handles it.
    ========================================================== */
 const EPISODES = [
+  // test (temporary, remove when you're done testing)
+  { cat:"test", title:"Test podcast", desc:"Just checking how everything looks", learners:"Student name 1, Student name 2", cover:"covers/testcover.png", audio:"audio/testaudio.mp3", vtt:"transcripts/testaudio.vtt" },
   // glaciers (5)
   { cat:"glaciers",  title:"Episode title", desc:"Short description", learners:"", cover:"covers/glaciers-1.jpg",  audio:"audio/glaciers-1.mp3",  vtt:"transcripts/glaciers-1.vtt" },
   { cat:"glaciers",  title:"Episode title", desc:"Short description", learners:"", cover:"covers/glaciers-2.jpg",  audio:"audio/glaciers-2.mp3",  vtt:"transcripts/glaciers-2.vtt" },
@@ -333,7 +336,7 @@ function toast(msg){
 }
 
 
-/* ---------- HOME: chips + tiles ---------- */
+/* ---------- HOME ---------- */
 function renderChips(){
   const items = [["all", "🎧", "All"], ...Object.entries(CATEGORIES).map(([k, v]) => [k, v.emoji, v.label])];
   $("#chips").innerHTML = items.map(([k, em, label]) =>
@@ -402,7 +405,7 @@ function load(i, play, openScreen){
 }
 
 
-/* ---------- TRANSCRIPT (spotify lyrics style) ---------- */
+/* ---------- TRANSCRIPT ---------- */
 async function loadTranscript(e){
   lines = []; activeLine = -1;
   $("#lyrics").innerHTML = '<p class="msg">Loading transcript…</p>';
@@ -467,7 +470,7 @@ function centerLine(force){
 ["wheel", "touchmove"].forEach(ev => $("#lyrics").addEventListener(ev, () => userScrolledAt = Date.now(), { passive:true }));
 
 
-/* ---------- PLAYER SCREEN open / close / tabs ---------- */
+/* ---------- PLAYER SCREEN ---------- */
 function openPlayer(){
   if (current < 0) return;                                         // nothing picked yet
   $("#player").classList.add("open");
