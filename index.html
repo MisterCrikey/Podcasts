@@ -3,150 +3,310 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#121212">
+<meta name="theme-color" content="#1aa6d8">
 <title>Podcasts</title>
 
 <style>
 /* ==========================================================
-   1. BASICS  (colors live here, tweak them if you want)
+   1. BASICS + THEME COLORS
+   --c1 = light tone, --c2 = main tone, --c3 = deep tone.
+   JS swaps c1/c2 for every category and the whole site
+   fades into that color. Pretty neat, right?
    ========================================================== */
+@property --c1{syntax:'<color>';inherits:true;initial-value:#c6f4ff}
+@property --c2{syntax:'<color>';inherits:true;initial-value:#1aa6d8}
 :root{
-  --bg:#121212; --card:#1f1f1f; --hover:#2a2a2a;
-  --text:#fff;  --muted:#b3b3b3; --accent:#1ed760;
-  --bar:72px;
-  --tint:#333;               /* the player screen color, JS changes it per category */
+  --c1:#c6f4ff; --c2:#1aa6d8;
+  --c3:color-mix(in srgb,var(--c2) 40%,#032038);
+  --muted:rgba(255,255,255,.88);
+  --shadow:0 1px 2px rgba(0,30,60,.55);
+  --bar:84px;
+  transition:--c1 1.2s ease,--c2 1.2s ease;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
-body{background:var(--bg);color:var(--text);font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-user-select:none;user-select:none}
-button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
-button:focus-visible,.card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+body{
+  color:#fff;text-shadow:var(--shadow);
+  font-family:"Segoe UI","Frutiger","Trebuchet MS",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-user-select:none;user-select:none;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% -5%,rgba(255,255,255,.75),transparent 60%),
+    linear-gradient(170deg,var(--c1) 0%,var(--c2) 45%,var(--c3) 100%) fixed;
+}
+button{font:inherit;color:inherit;text-shadow:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,.card:focus-visible{outline:2px solid #fff;outline-offset:3px}
 svg{display:block;fill:currentColor}
 
 /* ==========================================================
-   2. HOME  (categories + episode tiles)
+   2. THE SCENES (animated backgrounds)
+   Every category has its own scene, JS fades between them.
+   "All" and "Test" get a little mix of everything.
+   Layers: water, sun, leaves, ice, river, coral, bubbles
    ========================================================== */
-#home{height:calc(100% - var(--bar));overflow-y:auto;padding:0 28px 40px}
-header{position:sticky;top:0;z-index:5;padding:20px 0 14px;background:linear-gradient(var(--bg) 80%,transparent)}
-header h1{font-size:1.6rem;margin-bottom:14px}
+.fx{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+#player .fx{position:absolute}
+.in-player>.fx{display:none}                  /* hides the home background while the player covers it, saves battery */
+.fx::before{content:"";position:absolute;left:-20%;right:-20%;top:-32%;height:62%;z-index:1;border-radius:0 0 50% 50%/0 0 100% 100%;
+  background:linear-gradient(rgba(255,255,255,.3),rgba(255,255,255,.02))}   /* the big curved glass shine */
+.layer{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity 1.2s ease}
+.fx i,.fx b{position:absolute;display:block}
 
-.chips{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none}
+/* --- WATER: bent light blobs + stripes (all, beaches, coral) --- */
+.caA,.caB{inset:-15%;will-change:transform}
+.caA{background:radial-gradient(circle,rgba(255,255,255,.75) 0 5px,transparent 26px) 0 0/84px 84px;
+  filter:url(#refractA);opacity:.5;animation:driftA 26s ease-in-out infinite alternate}
+.caB{background:repeating-linear-gradient(115deg,transparent 0 46px,rgba(255,255,255,.55) 62px,transparent 84px);
+  filter:url(#refractB);opacity:.35;animation:driftB 32s ease-in-out infinite alternate}
+@keyframes driftA{to{transform:translate3d(-60px,40px,0) scale(1.04)}}
+@keyframes driftB{to{transform:translate3d(70px,-50px,0) scale(1.05)}}
+
+/* --- SUN: glowing sun + slowly swaying rays (beaches) --- */
+.sunglow{inset:0;background:radial-gradient(circle at 86% -2%,rgba(255,252,210,.95) 0,rgba(255,225,130,.5) 9%,rgba(255,200,100,.18) 26%,transparent 46%);
+  animation:pulse 6s ease-in-out infinite alternate}
+.sunrays{left:calc(86% - 60vmax);top:calc(-2% - 60vmax);width:120vmax;height:120vmax;will-change:transform;
+  background:repeating-conic-gradient(rgba(255,244,190,.34) 0 3deg,transparent 3deg 10deg);
+  -webkit-mask-image:radial-gradient(circle,#000 0,transparent 62%);mask-image:radial-gradient(circle,#000 0,transparent 62%);
+  animation:raysway 16s ease-in-out infinite alternate}
+.sunrays.r2{background:repeating-conic-gradient(rgba(255,255,255,.24) 0 1.5deg,transparent 1.5deg 7deg);animation-duration:23s;animation-direction:alternate-reverse}
+@keyframes raysway{from{transform:rotate(-7deg)}to{transform:rotate(7deg)}}
+@keyframes pulse{to{opacity:.7;transform:scale(1.08)}}
+
+/* --- LEAF TEXTURE: soft blurry leaves that drift slowly + sunlight through the canopy (forests) --- */
+.tex{inset:calc(var(--tile) * -1);will-change:transform}
+.tex1{filter:blur(2.5px);animation:texA 80s linear infinite}
+.tex2{filter:blur(1.2px);animation:texB 55s linear infinite}
+@keyframes texA{to{transform:translate3d(var(--tile),var(--tile),0)}}
+@keyframes texB{to{transform:translate3d(calc(var(--tile) * -1),var(--tile),0)}}
+.dapple{inset:-10%;animation:dapple 13s ease-in-out infinite alternate;
+  background:
+    radial-gradient(ellipse 26% 34% at 18% 28%,rgba(255,255,200,.38),transparent 70%),
+    radial-gradient(ellipse 22% 30% at 72% 58%,rgba(255,255,210,.3),transparent 70%),
+    radial-gradient(ellipse 30% 22% at 40% 90%,rgba(220,255,180,.28),transparent 70%)}
+@keyframes dapple{to{transform:translate3d(5%,3%,0) scale(1.08);opacity:.7}}
+
+/* --- ICE: cracks growing across frozen glass + twinkles (glaciers) --- */
+.frost{inset:0;background:radial-gradient(ellipse at 50% 45%,transparent 48%,rgba(225,248,255,.5) 100%),linear-gradient(rgba(255,255,255,.14),transparent)}
+.icesvg{position:absolute;inset:0;width:100%;height:100%}
+.crack{fill:none;stroke:rgba(255,255,255,.95);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:1;stroke-dashoffset:1;opacity:0;animation:crackgrow 14s ease-out infinite}
+.crack.glow{stroke:rgba(190,240,255,.5);stroke-width:7}
+@keyframes crackgrow{0%{stroke-dashoffset:1;opacity:0}6%{opacity:1}38%{stroke-dashoffset:0}80%{stroke-dashoffset:0;opacity:.85}100%{stroke-dashoffset:0;opacity:0}}
+.spark{width:14px;height:14px;animation:twinkle 3.5s ease-in-out infinite}
+.spark::before,.spark::after{content:"";position:absolute;left:50%;top:50%;background:#fff;border-radius:2px;transform:translate(-50%,-50%);box-shadow:0 0 8px 2px rgba(200,245,255,.9)}
+.spark::before{width:100%;height:2px}
+.spark::after{width:2px;height:100%}
+@keyframes twinkle{0%,100%{opacity:0;transform:scale(.3) rotate(0)}50%{opacity:1;transform:scale(1) rotate(45deg)}}
+
+/* --- RIVER: wavy bands flowing sideways (mangroves) --- */
+.L-river{background:linear-gradient(180deg,transparent 30%,rgba(10,150,150,.3) 58%,rgba(4,85,105,.55) 100%)}
+.rv,.sw{--tile:400px;left:0;width:calc(100% + var(--tile));height:calc(var(--tile) * .3);background-repeat:repeat-x;background-size:var(--tile) 100%;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='120' viewBox='0 0 400 120'%3E%3Cpath d='M0 40Q100 15 200 40T400 40V120H0Z' fill='rgba(255,255,255,0.10)'/%3E%3Cpath d='M0 40Q100 15 200 40T400 40' fill='none' stroke='rgba(255,255,255,0.55)' stroke-width='2.5'/%3E%3Cpath d='M0 72Q100 52 200 72T400 72' fill='none' stroke='rgba(255,255,255,0.3)' stroke-width='2'/%3E%3C/svg%3E");
+  animation:flow 16s linear infinite;will-change:transform}
+.rv1{--tile:520px;bottom:44%;animation-duration:20s;opacity:.7}
+.rv2{--tile:360px;bottom:26%;animation-duration:12s}
+.rv3{--tile:260px;bottom:8%;animation-duration:8s;opacity:.9}
+@keyframes flow{to{transform:translateX(calc(var(--tile) * -1))}}
+
+/* --- OCEAN: depth, light rays from the surface, waves up top, floating specks (coral reefs) --- */
+.depth{inset:0;background:linear-gradient(180deg,rgba(255,255,255,.12) 0,transparent 25%,rgba(0,25,70,.45) 100%)}
+.orays{inset:-20% -10% 25%;transform-origin:50% 0;
+  background:repeating-linear-gradient(100deg,rgba(255,255,255,.2) 0 28px,transparent 28px 96px);
+  -webkit-mask-image:linear-gradient(#000,transparent 85%);mask-image:linear-gradient(#000,transparent 85%);
+  animation:oraysway 14s ease-in-out infinite alternate}
+@keyframes oraysway{to{transform:rotate(3deg) skewX(-4deg)}}
+.sw1{--tile:640px;top:-1%;animation-duration:28s;opacity:.5}
+.sw2{--tile:440px;top:4%;animation-duration:18s;opacity:.32}
+.mote{bottom:-20px;border-radius:50%;background:rgba(255,255,255,.75);box-shadow:0 0 6px rgba(255,255,255,.6);animation:rise linear infinite}
+
+/* --- BUBBLES (all, coral, mangroves) --- */
+.bubble{bottom:-140px;border-radius:50%;border:1px solid rgba(255,255,255,.55);
+  background:
+    radial-gradient(circle at 30% 25%,rgba(255,255,255,.95) 0 7%,rgba(255,255,255,.25) 16%,transparent 42%),
+    radial-gradient(circle,transparent 55%,rgba(255,255,255,.4) 75%,rgba(255,255,255,.12));
+  animation:rise linear infinite;will-change:transform}
+@keyframes rise{from{transform:translate3d(0,0,0)}to{transform:translate3d(var(--dx),-130vh,0)}}
+
+/* ==========================================================
+   3. HOME (categories + tiles)
+   ========================================================== */
+#home{position:relative;z-index:1;height:calc(100% - var(--bar));overflow-y:auto;padding:0 28px 40px}
+header{position:sticky;top:0;z-index:5;margin:0 -28px;padding:18px 28px 14px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c3) 68%,transparent),color-mix(in srgb,var(--c3) 40%,transparent));
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(255,255,255,.6);box-shadow:0 6px 20px rgba(0,30,70,.28)}
+header h1{font-size:1.9rem;font-weight:600;margin-bottom:14px;letter-spacing:.2px;
+  text-shadow:0 2px 4px rgba(0,20,50,.8),0 0 16px rgba(0,20,50,.55)}   /* dark glow behind the white letters = readable on any color */
+
+.chips{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
-.chip{flex:none;padding:8px 16px;border-radius:999px;background:var(--card);white-space:nowrap;transition:background .2s}
-.chip:hover{background:var(--hover)}
-.chip.on{background:var(--accent);color:#000;font-weight:600}
+.chip{flex:none;padding:9px 18px;border-radius:999px;white-space:nowrap;border:1px solid rgba(255,255,255,.8);
+  background:linear-gradient(180deg,rgba(255,255,255,.65),rgba(255,255,255,.28) 50%,rgba(0,40,80,.2) 50%,rgba(255,255,255,.24));
+  box-shadow:0 3px 8px rgba(0,30,60,.3),inset 0 1px 0 rgba(255,255,255,.9);transition:transform .2s,filter .2s,box-shadow .2s}
+.chip:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.chip.on{color:#0a4466;text-shadow:0 1px 0 rgba(255,255,255,.8);font-weight:600;
+  background:linear-gradient(180deg,#fff,rgba(255,255,255,.78) 50%,rgba(255,255,255,.58) 50%,rgba(255,255,255,.88));
+  box-shadow:0 0 16px var(--c1),0 3px 8px rgba(0,30,60,.3),inset 0 1px 0 #fff}
 
-section{margin-top:28px}
-section h2{display:flex;align-items:baseline;gap:10px;font-size:1.3rem;margin-bottom:14px}
+section{margin-top:30px}
+section h2{display:flex;align-items:baseline;gap:10px;font-size:1.35rem;font-weight:400;margin-bottom:16px;padding-bottom:8px;
+  border-bottom:1px solid transparent;border-image:linear-gradient(90deg,rgba(255,255,255,.8),transparent) 1}
 section h2 small{font-size:.85rem;color:var(--muted);font-weight:400}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:22px}
 
-.card{background:var(--card);border-radius:8px;padding:14px;cursor:pointer;transition:background .2s}
-.card:hover,.card.playing{background:var(--hover)}
-.card h3{font-size:1rem;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.card p{font-size:.85rem;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* glossy glass tile. the --c vars are set per tile from JS so each category has its own tint */
+.card{--c3:color-mix(in srgb,var(--c2) 40%,#032038);--cc:var(--c2);position:relative;border-radius:18px;padding:12px;cursor:pointer;
+  border:1px solid rgba(255,255,255,.75);
+  background:linear-gradient(180deg,rgba(255,255,255,.4),rgba(255,255,255,.1) 55%,color-mix(in srgb,var(--cc) 55%,transparent));
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  box-shadow:0 10px 26px rgba(0,30,70,.32),inset 0 1px 0 rgba(255,255,255,.9),inset 0 -14px 24px color-mix(in srgb,var(--cc) 45%,transparent);
+  transition:transform .25s,box-shadow .25s}
+.card::before{content:"";position:absolute;left:0;right:0;top:0;height:46%;border-radius:17px 17px 60% 60%/17px 17px 24% 24%;
+  background:linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,.05));pointer-events:none}
+.card:hover{transform:translateY(-5px);box-shadow:0 16px 32px rgba(0,30,70,.38),0 0 24px var(--cc),inset 0 1px 0 #fff,inset 0 -14px 24px color-mix(in srgb,var(--cc) 45%,transparent)}
+.card.playing{box-shadow:0 0 0 2px #fff,0 0 26px var(--cc),0 10px 26px rgba(0,30,70,.35),inset 0 1px 0 #fff}
+.card h3{position:relative;font-size:1rem;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card p{position:relative;font-size:.85rem;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
-/* cover = gradient + emoji, and the real image sits on top once it exists */
-.cover{position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;display:grid;place-items:center;font-size:3rem;box-shadow:0 8px 20px rgba(0,0,0,.4)}
+/* cover = gradient + emoji, real image on top. glass frame + shine */
+.cover{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;display:grid;place-items:center;font-size:3rem;
+  border:1px solid rgba(255,255,255,.85);box-shadow:0 8px 18px rgba(0,30,70,.4),inset 0 0 0 1px rgba(255,255,255,.25)}
 .cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;-webkit-user-drag:none}
+.cover::after{content:"";position:absolute;left:0;right:0;top:0;height:48%;pointer-events:none;
+  background:linear-gradient(rgba(255,255,255,.4),rgba(255,255,255,.02));border-radius:0 0 55% 55%/0 0 30% 30%}
 .card .cover{margin-bottom:12px}
-
-/* the green play circle. flex + svg = triangle is dead center now */
-.badge{position:absolute;right:8px;bottom:8px;width:44px;height:44px;border-radius:50%;background:var(--accent);color:#000;
-  display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(8px);transition:.2s;box-shadow:0 6px 14px rgba(0,0,0,.4)}
-.badge svg{width:24px;height:24px}
-.card:hover .badge,.card.playing .badge{opacity:1;transform:none}
 .empty{color:var(--muted);padding:40px 0;text-align:center}
 
 /* ==========================================================
-   3. BOTTOM BAR  (the little player)
+   4. GLOSSY ORBS + BUTTONS
+   (the play badge, the big play button and the round buttons)
    ========================================================== */
-#bar{position:fixed;left:0;right:0;bottom:0;height:var(--bar);z-index:10;background:#000;
-  display:grid;grid-template-columns:1fr 2fr 1fr;align-items:center;gap:12px;padding:0 16px}
-.now{display:flex;align-items:center;gap:12px;min-width:0;cursor:pointer}
-.mini{width:48px;height:48px;border-radius:4px;flex:none;font-size:1.5rem}
+.badge,.ib.big{position:relative;display:flex;align-items:center;justify-content:center;border-radius:50%;color:#fff;
+  border:1.5px solid rgba(255,255,255,.95);
+  background:radial-gradient(circle at 50% 118%,rgba(255,255,255,.85) 0,rgba(255,255,255,0) 55%),linear-gradient(180deg,var(--c1) 0%,var(--c2) 55%,var(--c3,#033) 100%);
+  box-shadow:0 4px 12px rgba(0,30,60,.5),0 0 16px color-mix(in srgb,var(--c1) 80%,transparent),inset 0 -3px 6px rgba(0,0,0,.25)}
+.badge::before,.ib.big::before{content:"";position:absolute;left:12%;right:12%;top:4%;height:46%;border-radius:50%/70% 70% 30% 30%;
+  background:linear-gradient(rgba(255,255,255,.95),rgba(255,255,255,.12))}
+.badge svg,.ib.big svg{position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(0,40,80,.7))}
+.badge{position:absolute;z-index:2;right:8px;bottom:8px;width:44px;height:44px;opacity:0;transform:translateY(8px) scale(.9);transition:.25s}
+.badge svg{width:24px;height:24px}
+.card:hover .badge,.card.playing .badge{opacity:1;transform:none}
+
+.ib{position:relative;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;
+  border:1px solid rgba(255,255,255,.75);
+  background:linear-gradient(180deg,rgba(255,255,255,.6),rgba(255,255,255,.2) 50%,rgba(0,40,80,.25) 50%,rgba(255,255,255,.2));
+  box-shadow:0 2px 6px rgba(0,30,60,.35),inset 0 1px 0 rgba(255,255,255,.9);transition:transform .15s,filter .15s}
+.ib:hover{filter:brightness(1.15);transform:scale(1.07)}
+.ib svg{width:22px;height:22px}
+.ib.skip{width:46px;border-radius:999px;font-size:.8rem;font-weight:600}
+.ib.big{width:52px;height:52px}
+.ib.big svg{width:28px;height:28px}
+
+/* ==========================================================
+   5. BOTTOM BAR (glass dock, a little windows media player 12 vibe)
+   ========================================================== */
+#bar{position:fixed;left:0;right:0;bottom:0;height:var(--bar);z-index:10;
+  display:grid;grid-template-columns:1fr 2fr 1fr;align-items:center;gap:12px;padding:0 18px;
+  background:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,.1) 50%,color-mix(in srgb,var(--c3) 70%,transparent) 50%,color-mix(in srgb,var(--c2) 55%,transparent));
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:1px solid rgba(255,255,255,.9);box-shadow:0 -6px 24px rgba(0,30,70,.35),inset 0 1px 0 #fff}
+#bar .now{display:flex;align-items:center;gap:12px;min-width:0;cursor:pointer}
+.mini{width:52px;height:52px;border-radius:10px;flex:none;font-size:1.5rem}
 .info{min-width:0}
 .info b,.info span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .info span{font-size:.8rem;color:var(--muted)}
 
 .ctr{display:flex;flex-direction:column;align-items:center;gap:6px}
 .btns{display:flex;align-items:center;gap:14px}
-.ib{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:color .15s,transform .15s}
-.ib:hover{color:#fff}
-.ib svg{width:24px;height:24px}
-.ib.skip{font-size:.8rem;font-weight:600;width:44px}
-.ib.big{width:46px;height:46px;background:#fff;color:#000}   /* the main play/pause button */
-.ib.big:hover{transform:scale(1.06);color:#000}
-.ib.big svg{width:28px;height:28px}
-
 .seekrow{display:flex;align-items:center;gap:8px;width:100%;max-width:560px;font-size:.75rem;color:var(--muted)}
 .seekrow span{min-width:36px;text-align:center;font-variant-numeric:tabular-nums}
-input[type=range]{flex:1;height:4px;accent-color:var(--accent);cursor:pointer}
+
+/* glossy seek bar. --pct is filled by JS while the audio plays */
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:18px;background:transparent;cursor:pointer;--pct:0%}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:99px;border:1px solid rgba(255,255,255,.75);
+  background:linear-gradient(90deg,var(--c1),var(--c2)) left center/var(--pct) 100% no-repeat,rgba(0,30,60,.45);
+  box-shadow:inset 0 2px 3px rgba(0,0,0,.35)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;margin-top:-6px;border-radius:50%;border:1px solid #fff;
+  background:radial-gradient(circle at 35% 30%,#fff,var(--c1) 60%,var(--c2));box-shadow:0 2px 6px rgba(0,30,60,.5),0 0 8px var(--c1)}
+input[type=range]::-moz-range-track{height:8px;border-radius:99px;border:1px solid rgba(255,255,255,.75);background:rgba(0,30,60,.45)}
+input[type=range]::-moz-range-progress{height:8px;border-radius:99px;background:linear-gradient(90deg,var(--c1),var(--c2))}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;border:1px solid #fff;background:radial-gradient(circle at 35% 30%,#fff,var(--c1) 60%,var(--c2))}
 
 .right{display:flex;justify-content:flex-end;align-items:center;gap:10px}
-.speed{font-size:.85rem;border:1px solid #666;border-radius:999px;padding:4px 12px;min-width:52px}
-.mPlay,.miniProg{display:none}   /* phone-only stuff, see media query at the bottom */
+.speed{font-size:.85rem;border:1px solid rgba(255,255,255,.8);border-radius:999px;padding:5px 12px;min-width:52px;
+  background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.2) 50%,rgba(0,40,80,.22) 50%,rgba(255,255,255,.2));
+  box-shadow:0 2px 6px rgba(0,30,60,.3),inset 0 1px 0 #fffc}
+.mPlay,.miniProg{display:none}   /* phone-only stuff, see the phone section at the bottom */
 
 /* ==========================================================
-   4. PLAYER SCREEN  (full screen, with the transcript)
+   6. PLAYER SCREEN (full screen + transcript)
    ========================================================== */
-#player{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;
-  background:linear-gradient(var(--tint),#121212 120%);
+#player{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;overflow:hidden;
+  background:
+    radial-gradient(ellipse 90% 55% at 25% -10%,rgba(255,255,255,.6),transparent 60%),
+    linear-gradient(165deg,color-mix(in srgb,var(--c1) 30%,var(--c2)) 0%,var(--c2) 42%,var(--c3) 100%);
   transform:translateY(100%);visibility:hidden;transition:transform .35s ease,visibility 0s .35s}
 #player.open{transform:none;visibility:visible;transition:transform .35s ease}
+.ptop,.tabs,.pbody{position:relative;z-index:1}
 
 .ptop{display:flex;align-items:center;justify-content:space-between;padding:max(14px,env(safe-area-inset-top)) 16px 8px}
-.ptop .from{font-size:.85rem;text-align:center;color:#ddd}
-.ptop .ib{color:#fff}
+.ptop .from{font-size:.9rem;text-align:center}
 .ptop .ghost{width:38px}
 
 .tabs{display:none;gap:8px;justify-content:center;padding:6px 0}
-.tabs button{padding:6px 18px;border-radius:999px;background:rgba(255,255,255,.12);font-size:.9rem}
-.tabs button.on{background:#fff;color:#000;font-weight:600}
+.tabs button{padding:7px 20px;border-radius:999px;border:1px solid rgba(255,255,255,.8);font-size:.9rem;
+  background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.2) 50%,rgba(0,40,80,.2) 50%,rgba(255,255,255,.2))}
+.tabs button.on{background:linear-gradient(180deg,#fff,rgba(255,255,255,.8) 50%,rgba(255,255,255,.6) 50%,rgba(255,255,255,.9));color:#0a4466;text-shadow:none;font-weight:600}
 
 .pbody{flex:1;min-height:0;display:grid;grid-template-columns:minmax(320px,440px) 1fr;gap:56px;padding:12px 56px 32px;max-width:1300px;width:100%;margin:0 auto}
 .pleft{display:flex;flex-direction:column;justify-content:center;gap:18px;min-height:0}
-.pleft .cover{width:100%;max-width:380px;margin:0 auto;font-size:6rem;box-shadow:0 16px 40px rgba(0,0,0,.5)}
-.ptitle{font-size:1.6rem;font-weight:700;line-height:1.2}
-.pcat{color:#ddd;font-size:.95rem;margin-top:4px}
-.pdesc{color:#ccc;font-size:.9rem;margin-top:6px}
-.credits{background:rgba(0,0,0,.25);border-radius:8px;padding:12px 14px}
+.pleft .cover{width:100%;max-width:380px;margin:0 auto;font-size:6rem;border-radius:18px;border-width:2px;box-shadow:0 18px 40px rgba(0,30,70,.5)}
+.ptitle{font-size:1.7rem;font-weight:600;line-height:1.2}
+.pcat{font-size:.95rem;margin-top:4px}
+.pdesc{color:var(--muted);font-size:.9rem;margin-top:6px}
+.credits{border-radius:14px;padding:12px 14px;border:1px solid rgba(255,255,255,.6);
+  background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,.1));box-shadow:inset 0 1px 0 rgba(255,255,255,.8)}
 .credits h4{font-size:.9rem;margin-bottom:4px}
-.credits p{color:#ddd;font-size:.9rem;line-height:1.45}
-.pleft .seekrow{max-width:none;color:#ddd}
-.pleft .btns{justify-content:center;gap:18px}
-.pleft .ib{color:#ddd}
-.pleft .ib.big{color:#000}
+.credits p{color:var(--muted);font-size:.9rem;line-height:1.45}
+.pleft .seekrow{max-width:none}
+.pleft .btns{justify-content:center;gap:16px;margin-top:6px}
+@media (min-width:861px){ .pleft .cover{-webkit-box-reflect:below 6px linear-gradient(transparent 72%,rgba(255,255,255,.3))} }
 
-/* ----- the transcript, lyrics style ----- */
-.pright{min-height:0;position:relative}
-#lyrics{position:absolute;inset:0;overflow-y:auto;padding:38vh 0;scrollbar-width:none;
+/* the transcript, lyrics style, now inside a glass panel */
+.pright{min-height:0;position:relative;border-radius:26px;overflow:hidden;border:1px solid rgba(255,255,255,.6);
+  background:linear-gradient(180deg,rgba(255,255,255,.26),rgba(255,255,255,.06));
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 12px 34px rgba(0,30,70,.3),inset 0 1px 0 rgba(255,255,255,.85)}
+#lyrics{position:absolute;inset:0;overflow-y:auto;padding:38vh 34px;scrollbar-width:none;
   -webkit-mask-image:linear-gradient(transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(transparent,#000 14%,#000 86%,transparent)}
 #lyrics::-webkit-scrollbar{display:none}
-#lyrics .line{display:block;width:100%;text-align:left;font-size:clamp(1.5rem,2.6vw,2.2rem);font-weight:800;line-height:1.25;
-  padding:10px 0;color:rgba(255,255,255,.38);transform-origin:left center;transition:color .3s,transform .3s}
-#lyrics .line:hover{color:rgba(255,255,255,.7)}
-#lyrics .line.now{color:#fff;transform:scale(1.03)}
-#lyrics .line.past{color:rgba(255,255,255,.5)}
-#lyrics .msg{font-size:1.2rem;font-weight:600;color:rgba(255,255,255,.7);text-align:center;padding:0 20px}
+#lyrics .line{display:block;width:100%;text-align:left;font-size:clamp(1.5rem,2.6vw,2.2rem);font-weight:700;line-height:1.25;
+  padding:10px 0;color:rgba(255,255,255,.4);transform-origin:left center;transition:color .3s,transform .3s,text-shadow .3s}
+#lyrics .line:hover{color:rgba(255,255,255,.75)}
+#lyrics .line.now{color:#fff;transform:scale(1.03);text-shadow:0 0 22px var(--c1),0 2px 4px rgba(0,30,60,.5)}
+#lyrics .line.past{color:rgba(255,255,255,.55)}
+#lyrics .msg{font-size:1.2rem;font-weight:600;color:rgba(255,255,255,.85);text-align:center;padding:0 20px}
 
-#toast{position:fixed;left:50%;bottom:calc(var(--bar) + 16px);transform:translateX(-50%);z-index:50;background:#fff;color:#000;
-  padding:10px 16px;border-radius:8px;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .3s;max-width:90%}
+#toast{position:fixed;left:50%;bottom:calc(var(--bar) + 16px);transform:translateX(-50%);z-index:50;
+  background:linear-gradient(#fff,#d9f3ff);color:#06324d;text-shadow:none;border:1px solid #fff;
+  padding:10px 16px;border-radius:12px;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .3s;max-width:90%;box-shadow:0 8px 24px rgba(0,30,70,.4)}
 #toast.show{opacity:1}
 
 /* ==========================================================
-   5. PHONES AND SMALL SCREENS
+   7. PHONES AND SMALL SCREENS
    ========================================================== */
 @media (max-width:860px){
+  :root{--bar:76px}
   #home{padding:0 16px 24px}
-  .grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  header{margin:0 -16px;padding:14px 16px 10px}
+  header h1{font-size:1.5rem;margin-bottom:10px}
+  .grid{grid-template-columns:repeat(2,1fr);gap:14px}
   .badge{opacity:.95;transform:none;width:38px;height:38px}   /* no hover on phones, so always show it */
+  .badge svg{width:20px;height:20px}
 
-  /* bar becomes a slim spotify-like mini player */
+  /* bar becomes a slim mini player */
   #bar{grid-template-columns:1fr auto;padding:0 12px env(safe-area-inset-bottom,0);height:calc(var(--bar) + env(safe-area-inset-bottom,0))}
   .ctr,.right{display:none}
-  .mPlay{display:flex;color:#000;background:#fff;width:42px;height:42px}
-  .miniProg{display:block;position:absolute;left:0;top:0;height:2px;width:0;background:var(--accent)}
+  .mPlay{display:flex;width:46px;height:46px}
+  .miniProg{display:block;position:absolute;left:0;top:0;height:3px;width:0;background:linear-gradient(90deg,var(--c1),#fff);box-shadow:0 0 8px var(--c1)}
 
   /* player: one thing at a time, switch with the tabs */
   .tabs{display:flex}
@@ -154,18 +314,40 @@ input[type=range]{flex:1;height:4px;accent-color:var(--accent);cursor:pointer}
   .pleft{justify-content:flex-start;overflow-y:auto}
   #player[data-view="listen"] .pright{display:none}
   #player[data-view="text"] .pleft{display:none}
-  #lyrics{padding:30vh 0}
+  #lyrics{padding:30vh 22px}
 }
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}.fx *,.bubble{animation:none!important}}
 </style>
 </head>
 
 <body>
 
+<!-- the "water bending light" filters, used by the background in the css -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <filter id="refractA" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.006 0.011" numOctaves="2" seed="4" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="70" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+  <filter id="refractB" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.009 0.005" numOctaves="2" seed="11" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="90" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</defs></svg>
+
+<div class="fx" aria-hidden="true" data-scene="all">
+  <div class="layer L-water"  data-in="all:.9 beaches:.6 coral:1"><i class="caA"></i><i class="caB"></i></div>
+  <div class="layer L-sun"    data-in="all:.5 beaches:1"><i class="sunglow"></i><i class="sunrays"></i><i class="sunrays r2"></i></div>
+  <div class="layer L-leaves" data-in="all:.3 forests:1"><i class="tex tex1"></i><i class="tex tex2"></i><i class="dapple"></i></div>
+  <div class="layer L-ice"    data-in="all:.35 glaciers:1"><i class="frost"></i></div>
+  <div class="layer L-river"  data-in="all:.35 mangroves:1"><i class="rv rv1"></i><i class="rv rv2"></i><i class="rv rv3"></i></div>
+  <div class="layer L-ocean"  data-in="coral:1"><i class="depth"></i><i class="orays"></i><i class="sw sw1"></i><i class="sw sw2"></i></div>
+  <div class="layer L-bub"    data-in="all:1 coral:1 mangroves:.6"></div>
+</div>
+
 <!-- ============ HOME ============ -->
 <div id="home">
   <header>
-    <h1>Spotify pls dont sue me</h1>
+    <h1>Glorbic</h1>
     <nav class="chips" id="chips" aria-label="Categories"></nav>
   </header>
   <div id="lists"></div>
@@ -201,6 +383,15 @@ input[type=range]{flex:1;height:4px;accent-color:var(--accent);cursor:pointer}
 
 <!-- ============ PLAYER SCREEN ============ -->
 <div id="player" data-view="listen" aria-label="Player">
+  <div class="fx" aria-hidden="true" data-scene="all">
+  <div class="layer L-water"  data-in="all:.9 beaches:.6 coral:1"><i class="caA"></i><i class="caB"></i></div>
+  <div class="layer L-sun"    data-in="all:.5 beaches:1"><i class="sunglow"></i><i class="sunrays"></i><i class="sunrays r2"></i></div>
+  <div class="layer L-leaves" data-in="all:.3 forests:1"><i class="tex tex1"></i><i class="tex tex2"></i><i class="dapple"></i></div>
+  <div class="layer L-ice"    data-in="all:.35 glaciers:1"><i class="frost"></i></div>
+  <div class="layer L-river"  data-in="all:.35 mangroves:1"><i class="rv rv1"></i><i class="rv rv2"></i><i class="rv rv3"></i></div>
+  <div class="layer L-ocean"  data-in="coral:1"><i class="depth"></i><i class="orays"></i><i class="sw sw1"></i><i class="sw sw2"></i></div>
+  <div class="layer L-bub"    data-in="all:1 coral:1 mangroves:.6"></div>
+</div>
   <div class="ptop">
     <button class="ib" id="closePlayer" data-ic="down" aria-label="Close player"></button>
     <div class="from" id="pFrom">Now playing</div>
@@ -248,12 +439,12 @@ input[type=range]{flex:1;height:4px;accent-color:var(--accent);cursor:pointer}
    The color tints the player screen for that category.
    ========================================================== */
 const CATEGORIES = {
-  test:      { emoji:"🧪", label:"Test",        color:"#5a3a8a" },   // temporary, delete this line (and the test episode) when you're done
-  glaciers:  { emoji:"🧊", label:"Glaciers",    color:"#1e5a7a" },
-  beaches:   { emoji:"🏖️", label:"Beaches",     color:"#a06a1c" },
-  mangroves: { emoji:"🌿", label:"Mangroves",   color:"#2d6a3e" },
-  forests:   { emoji:"🌲", label:"Forests",     color:"#1f5a3a" },
-  coral:     { emoji:"🪸", label:"Coral reefs", color:"#a8445a" }
+  test:      { emoji:"🧪", label:"Test",        color:"#7b4fd6", light:"#d6c4ff" },   // temporary, delete this line (and the test episode) when you're done
+  glaciers:  { emoji:"🧊", label:"Glaciers",    color:"#1a8fd1", light:"#a8e8ff" },
+  beaches:   { emoji:"🏖️", label:"Beaches",     color:"#f09a2c", light:"#ffe3a8" },
+  mangroves: { emoji:"🌿", label:"Mangroves",   color:"#12a3a0", light:"#a0f0e0" },
+  forests:   { emoji:"🌲", label:"Forests",     color:"#3aa23f", light:"#c2f58f" },
+  coral:     { emoji:"🪸", label:"Coral reefs", color:"#0b64b0", light:"#7cd0ff" }
 };
 
 /* ==========================================================
@@ -264,7 +455,7 @@ const CATEGORIES = {
    ========================================================== */
 const EPISODES = [
   // test (temporary, remove when you're done testing)
-  { cat:"test", title:"Test podcast", desc:"Just checking how everything looks", learners:"I CAN'T POSSIBLY PUT IN WORDS HOW HAPPY I AM THIS ACTUALLY WORKED, HEY STEVE, DORA, MORI, JENNY, LIVIA, ITS ALIVE!!! I DID IT!!!", cover:"covers/testcover.png", audio:"audio/testaudio.mp3", vtt:"transcripts/testaudio.vtt" },
+  { cat:"test", title:"Test podcast", desc:"Just checking how everything looks", learners:"Mr.Lucas", cover:"covers/testcover.png", audio:"audio/testaudio.mp3", vtt:"transcripts/testaudio.vtt" },
   // glaciers (5)
   { cat:"glaciers",  title:"Episode title", desc:"Short description", learners:"", cover:"covers/glaciers-1.jpg",  audio:"audio/glaciers-1.mp3",  vtt:"transcripts/glaciers-1.vtt" },
   { cat:"glaciers",  title:"Episode title", desc:"Short description", learners:"", cover:"covers/glaciers-2.jpg",  audio:"audio/glaciers-2.mp3",  vtt:"transcripts/glaciers-2.vtt" },
@@ -327,7 +518,34 @@ let speedI = 0;
 
 /* cover = gradient + emoji, real image goes on top. if the image is missing it just removes itself */
 const coverHTML = e => `<span>${CATEGORIES[e.cat].emoji}</span><img src="${e.cover}" alt="" draggable="false" onerror="this.remove()">`;
-const gradient  = cat => `linear-gradient(135deg, ${CATEGORIES[cat].color}, #222)`;
+const gradient  = cat => `linear-gradient(135deg, ${CATEGORIES[cat].light}, ${CATEGORIES[cat].color})`;
+
+/* THEME: fades the whole site into a category's colors.
+   "all" (or anything unknown) = the default aqua */
+const DEFAULT_THEME = { color:"#1aa6d8", light:"#c6f4ff" };
+function applyTheme(key){
+  const t = CATEGORIES[key] || DEFAULT_THEME, root = document.documentElement;
+  root.style.setProperty("--c1", t.light);
+  root.style.setProperty("--c2", t.color);
+  $('meta[name="theme-color"]').content = t.color;
+  setScene(key);
+}
+
+/* SCENE: each layer says in data-in how visible it is per category (like "all:.3 forests:1").
+   not listed = hidden. this fades layers in and out */
+function setScene(key){
+  const scene = ["forests", "glaciers", "beaches", "mangroves", "coral"].includes(key) ? key : "all";
+  $$(".fx").forEach(fx => {
+    fx.dataset.scene = scene;
+    $$(".layer", fx).forEach(l => {
+      const map = Object.fromEntries(l.dataset.in.split(" ").map(p => p.split(":")));
+      const o = parseFloat(map[scene]) || 0;
+      clearTimeout(l._t);
+      if (o){ l.style.visibility = "visible"; requestAnimationFrame(() => l.style.opacity = o); }
+      else  { l.style.opacity = 0; l._t = setTimeout(() => l.style.visibility = "hidden", 1300); }
+    });
+  });
+}
 
 function toast(msg){
   const t = $("#toast");
@@ -344,6 +562,7 @@ function renderChips(){
 
   $$(".chip").forEach(b => b.onclick = () => {
     filter = b.dataset.k;
+    applyTheme(filter);
     renderChips(); renderTiles();
     $("#home").scrollTo(0, 0);
   });
@@ -360,7 +579,7 @@ function renderTiles(){
     return `<section>
       <h2>${c.emoji} ${c.label} <small>${eps.length} ${eps.length > 1 ? "episodes" : "episode"}</small></h2>
       <div class="grid">${eps.map(({ e, i }) => `
-        <div class="card ${i === current ? "playing" : ""}" tabindex="0" role="button" data-i="${i}" aria-label="${esc(e.title)}">
+        <div class="card ${i === current ? "playing" : ""}" style="--c1:${c.light};--c2:${c.color}" tabindex="0" role="button" data-i="${i}" aria-label="${esc(e.title)}">
           <div class="cover" style="background:${gradient(k)}">${coverHTML(e)}<div class="badge">${ICONS.play}</div></div>
           <h3>${esc(e.title)}</h3>
           <p>${esc(e.desc)}</p>
@@ -395,7 +614,7 @@ function load(i, play, openScreen){
   $("#pFrom").textContent  = `Playing from ${c.label}`;
   $("#pDesc").textContent  = e.desc;
   $("#pLearners").textContent = e.learners || "Learner names will appear here.";
-  document.documentElement.style.setProperty("--tint", c.color);
+  applyTheme(e.cat);
   $$(".card").forEach(x => x.classList.toggle("playing", +x.dataset.i === i));
 
   loadTranscript(e);
@@ -477,9 +696,10 @@ function centerLine(force){
 function openPlayer(){
   if (current < 0) return;                                         // nothing picked yet
   $("#player").classList.add("open");
+  setTimeout(() => document.body.classList.add("in-player"), 400);   // home background sleeps while the player covers it
   setTimeout(() => centerLine(true), 380);
 }
-const closePlayer = () => $("#player").classList.remove("open");
+const closePlayer = () => { document.body.classList.remove("in-player"); $("#player").classList.remove("open"); applyTheme(filter); };
 
 $("#openPlayer").onclick = openPlayer;
 $("#expand").onclick = openPlayer;
@@ -529,7 +749,7 @@ audio.onloadedmetadata = () => $$(".tdur").forEach(s => s.textContent = fmt(audi
 audio.ontimeupdate = () => {
   const pct = audio.duration ? audio.currentTime / audio.duration * 100 : 0;
   $$(".tcur").forEach(s => s.textContent = fmt(audio.currentTime));
-  $$(".seek").forEach(r => r.value = pct);
+  $$(".seek").forEach(r => { r.value = pct; r.style.setProperty("--pct", pct + "%"); });
   $("#miniProg").style.width = pct + "%";
   syncTranscript();
 };
@@ -549,6 +769,85 @@ document.addEventListener("dragstart",   e => e.preventDefault());
 
 
 /* ---------- GO! ---------- */
+/* ---------- BUILDING THE SCENES ---------- */
+const rnd = (a, b) => a + Math.random() * (b - a);
+
+/* bubbles! random sizes, they float up forever */
+function makeBubbles(){
+  const count = matchMedia("(max-width:860px)").matches ? 8 : 14;
+  $$(".L-bub").forEach(box => {
+    for (let i = 0; i < count; i++){
+      const b = document.createElement("b"), s = rnd(16, 106);
+      b.className = "bubble";
+      b.style.cssText = `width:${s}px;height:${s}px;left:${rnd(0, 100)}%;--dx:${rnd(-80, 80)}px;` +
+                        `animation-duration:${rnd(16, 38)}s;animation-delay:${-rnd(0, 30)}s;opacity:${rnd(.35, .85)}`;
+      box.appendChild(b);
+    }
+  });
+}
+
+/* leaf texture: soft shapes in a tile that repeats and drifts. each leaf is drawn 9 times (shifted by one tile)
+   so the edges of the tile match up and you never see a seam. random on every load */
+function leafTile(size, n, colors){
+  let g = "";
+  for (let i = 0; i < n; i++){
+    const x = rnd(0, size), y = rnd(0, size), r = rnd(0, 360), s = rnd(.7, 1.4), c = colors[i % colors.length];
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++){
+      g += `<g transform="translate(${(x + dx * size) | 0} ${(y + dy * size) | 0}) rotate(${r | 0}) scale(${s.toFixed(2)})">` +
+           `<path d="M0 0C18 -22 52 -22 72 0C52 22 18 22 0 0Z" fill="${c}"/><path d="M4 0L66 0" stroke="rgba(255,255,255,.12)" stroke-width="1.5"/></g>`;
+    }
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">${g}</svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+function makeLeafTexture(){
+  $$(".L-leaves").forEach(box => {
+    $(".tex1", box).style.cssText = `--tile:340px;background-size:340px 340px;background-image:${leafTile(340, 9, ["rgba(5,60,30,.4)", "rgba(15,100,45,.35)", "rgba(0,45,35,.35)"])}`;
+    $(".tex2", box).style.cssText = `--tile:220px;background-size:220px 220px;background-image:${leafTile(220, 7, ["rgba(140,230,110,.22)", "rgba(40,140,60,.3)", "rgba(210,255,170,.15)"])}`;
+  });
+}
+
+/* ice cracks: a random-walk line that sometimes splits into branches. no two look the same */
+function crack(x, y, ang, len, depth, delay, out){
+  let d = `M${x | 0} ${y | 0}`;
+  for (let i = 0, steps = Math.floor(len / 28); i < steps; i++){
+    ang += rnd(-.45, .45);
+    x += Math.cos(ang) * 28; y += Math.sin(ang) * 28;
+    d += `L${x | 0} ${y | 0}`;
+    if (depth < 3 && Math.random() < .28) crack(x, y, ang + (Math.random() < .5 ? -1 : 1) * rnd(.5, 1.2), len * .5, depth + 1, delay + .5, out);
+  }
+  out.push({ d, delay });
+}
+function makeIce(){
+  $$(".L-ice").forEach(box => {
+    const out = [];
+    for (let c = 0; c < 5; c++) crack(rnd(0, 1000), rnd(0, 700), rnd(0, 6.28), rnd(260, 440), 0, -rnd(0, 14), out);
+    const paths = out.map(p => `<path class="crack glow" pathLength="1" d="${p.d}" style="animation-delay:${p.delay}s"/>` +
+                               `<path class="crack" pathLength="1" d="${p.d}" style="animation-delay:${p.delay}s"/>`).join("");
+    box.insertAdjacentHTML("beforeend", `<svg class="icesvg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice">${paths}</svg>`);
+    for (let i = 0; i < 14; i++){
+      box.insertAdjacentHTML("beforeend", `<b class="spark" style="left:${rnd(2, 96)}%;top:${rnd(3, 90)}%;animation-delay:${-rnd(0, 4)}s;animation-duration:${rnd(2.5, 5)}s"></b>`);
+    }
+  });
+}
+
+/* ocean: tiny specks floating up through the water */
+function makeOcean(){
+  const count = matchMedia("(max-width:860px)").matches ? 14 : 30;
+  $$(".L-ocean").forEach(box => {
+    for (let i = 0; i < count; i++){
+      const b = document.createElement("b"), s = rnd(2, 5);
+      b.className = "mote";
+      b.style.cssText = `width:${s}px;height:${s}px;left:${rnd(0, 100)}%;--dx:${rnd(-60, 60)}px;` +
+                        `animation-duration:${rnd(26, 55)}s;animation-delay:${-rnd(0, 50)}s;opacity:${rnd(.3, .8)}`;
+      box.appendChild(b);
+    }
+  });
+}
+
+function makeFx(){ makeBubbles(); makeLeafTexture(); makeIce(); makeOcean(); setScene("all"); }
+
+makeFx();
 renderChips();
 renderTiles();
 </script>
